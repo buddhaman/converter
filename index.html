@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Image Processing with WebAssembly</title>
+    <script src="build/Debug/converter.js"></script> <!-- Include the generated WASM module -->
+</head>
+<body>
+    <h2>Image Loader and Processor</h2>
+
+    <input type="file" id="imageInput" accept="image/*">
+    <button onclick="loadAndProcessImage()">Load and Process Image</button>
+
+    <div id="originalImageContainer"></div>
+    <div id="negatedImageContainer"></div>
+    <div id="downloads"></div>
+
+    <script>
+        function loadAndProcessImage() {
+            var input = document.getElementById('imageInput');
+            if (input.files && input.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+                    var img = new Image();
+                    img.onload = function() {
+                        processImage(img);
+                    };
+                    img.src = e.target.result;
+                    displayImage(img, 'originalImageContainer');
+                };
+
+                reader.readAsDataURL(input.files[0]);
+            }
+        }
+
+        function displayImage(img, containerId) {
+            var container = document.getElementById(containerId);
+            container.innerHTML = ''; // Clear the container
+            container.appendChild(img); // Add the image to the container
+        }
+
+        function processImage(img) {
+            var canvas = document.createElement('canvas');
+            var ctx = canvas.getContext('2d');
+            canvas.width = img.width;
+            canvas.height = img.height;
+            ctx.drawImage(img, 0, 0);
+
+            var imageData = ctx.getImageData(0, 0, img.width, img.height);
+            var data = imageData.data;
+            var dataSize = data.length;
+
+            // Allocate memory in the WebAssembly module
+            var ptr = Module._alloc_memory(dataSize);
+
+            // Create a view on the WebAssembly memory
+            var wasmMemoryArray = new Uint8Array(Module.HEAPU8.buffer, ptr, dataSize);
+
+            // Copy the data to the allocated space
+            wasmMemoryArray.set(new Uint8Array(data.buffer));
+
+            // Call the WebAssembly function to process the image
+            Module._negate_image(ptr, img.width, img.height);
+
+            // Copy the data back from WebAssembly memory
+            data.set(new Uint8Array(Module.HEAPU8.buffer, ptr, dataSize));
+
+            // Update the canvas with the processed image
+            ctx.putImageData(imageData, 0, 0);
+
+            // Free the allocated memory (if you have a function for this in your WebAssembly module)
+            // Module._free_memory(ptr);
+
+            // Create a new Image element for the processed image
+            var processedImg = new Image();
+            processedImg.src = canvas.toDataURL();
+            displayImage(processedImg, 'negatedImageContainer');
+
+            // Also make downloadable
+            let downloadPtrSize = 1024*1024*32;
+            let downloadPtr = Module._alloc_memory(downloadPtrSize)
+            let size = Module._make_download(downloadPtr, ptr, img.width, img.height)
+            console.log("Size in bytes = ", size)
+            var downloadBuffer = new Uint8Array(Module.HEAPU8.buffer, downloadPtr, size);
+            console.log("Download buffer size = ", downloadBuffer.size)
+
+            // Assuming downloadBuffer is a Uint8Array with your image data
+            var blob = new Blob([downloadBuffer], { type: 'image/png' });
+
+            // Create a URL for the blob
+            var url = URL.createObjectURL(blob);
+
+            // Create a temporary anchor (a) element and trigger a download
+            var downloadLink = document.createElement('a');
+            downloadLink.href = url;
+            downloadLink.download = 'negated_image.png'; // Specify the default filename for the download
+            downloadLink.innerHTML = "Download this"
+
+            // Append the link to the document and trigger the download
+            downloads = document.getElementById('downloads')
+            downloads.appendChild(downloadLink);
+        }
+
+    </script>
+</body>
+</html>
