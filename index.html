@@ -1,10 +1,17 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Image Processing with WebAssembly</title>
-    <!-- <script src="build/Debug/converter.js"></script> -->
+    <title> Pixel Pivot </title>
+    <script src="build/Debug/converter.js"></script> 
     <script src="binaries/converter.js"></script> 
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
+    <link rel="manifest" href="/site.webmanifest">
+    <link rel="mask-icon" href="/safari-pinned-tab.svg" color="#5bbad5">
+    <meta name="msapplication-TileColor" content="#da532c">
+    <meta name="theme-color" content="#ffffff">
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -39,6 +46,20 @@
         button:hover {
             background-color: #45a049;
         }
+
+        #logo {
+            height: 5rem; /* Adjust the size as needed */
+        }
+
+        .headerContainer {
+            display: flex;
+            align-items: center; /* Align items vertically */
+            gap: 10px; /* Add some space between the logo and the text */
+            width: 100%;
+            text-align: center;
+            justify-content: center;
+        }
+
         #downloads {
             margin: 20px;
             display: flex;
@@ -60,7 +81,10 @@
     </style>
 </head>
 <body>
-    <h2> Image Converter </h2>
+    <div class="headerContainer">
+    <img src="assets/pixelpivotlogo.png" alt="Pixel Pivot Logo" id="logo">
+    <h2> Pixel Pivot </h2>
+    </div>
     <p> Select any image and convert it to png or jpeg. </p>
 
     <input type="file" id="imageInput" accept="image/*">
