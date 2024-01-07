@@ -198,14 +198,14 @@
             switch(extension)
             {
             case 'png': conversionOption = 0; break;
-            case 'jpg': conversionOption = 1; break;
+            case 'jpeg': conversionOption = 1; break;
             }
-            let size = Module._make_download(downloadPtr, ptr, img.width, img.height, 0)
+            let size = Module._make_download(downloadPtr, ptr, img.width, img.height, conversionOption)
             console.log("Size in bytes = ", size)
             let downloadBuffer = new Uint8Array(Module.HEAPU8.buffer, downloadPtr, size);
 
             // Assuming downloadBuffer is a Uint8Array with your image data
-            let blob = new Blob([downloadBuffer], { type: 'image/png' });
+            let blob = new Blob([downloadBuffer], { type: 'image/'+extension });
 
             // Create a URL for the blob
             let url = URL.createObjectURL(blob);
