@@ -23,6 +23,9 @@ extern "C" {
     }
 
     EMSCRIPTEN_KEEPALIVE
+    void free_memory(void* memory) {
+        free(memory);
+    }
 
     // Assume that each pixel is represented by 4 bytes (RGBA
     EMSCRIPTEN_KEEPALIVE
@@ -46,24 +49,44 @@ extern "C" {
     void write_func(void *context, void *data, int size)
     {
         Writer* writer = (Writer*)context;
-        printf("Now writing %d bytes\n", size);
+        //printf("Now writing %d bytes\n", size);
         memcpy(writer->data + writer->offset, data, size);
         writer->offset+=size;
     }
 
     EMSCRIPTEN_KEEPALIVE
-    size_t make_download(uint8_t* dest, uint8_t* img, int width, int height) {
+    size_t make_download(uint8_t* dest, uint8_t* img, int width, int height, int type) {
         Writer writer = {dest, 0};
 
         int components = 4;
         int stride_in_bytes = components*width;
-        stbi_write_png_to_func(write_func, 
-                               &writer, 
-                               width, 
-                               height, 
-                               components, 
-                               img, 
-                               stride_in_bytes);
+        switch(type)
+        {
+            case 0:
+            {
+                printf("Now creating png\n");
+                stbi_write_png_to_func(write_func, 
+                                    &writer, 
+                                    width, 
+                                    height, 
+                                    components, 
+                                    img, 
+                                    stride_in_bytes);
+            } break;
+
+            case 1:
+            {
+                printf("Now creating jpg\n");
+                stbi_write_jpg_to_func(write_func, 
+                                    &writer, 
+                                    width, 
+                                    height, 
+                                    components, 
+                                    img, 
+                                    stride_in_bytes);
+            } break;
+
+        }
         return writer.offset;
     }
 }

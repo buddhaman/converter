@@ -2,66 +2,185 @@
 <html>
 <head>
     <title>Image Processing with WebAssembly</title>
-    <!--<script src="build/Debug/converter.js"></script> -->
+    <!-- <script src="build/Debug/converter.js"></script> -->
     <script src="binaries/converter.js"></script> 
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        #imageInput {
+            margin: 20px;
+        }
+        #originalImageContainer {
+            max-width: 100%;
+            overflow: hidden;
+            margin: 10px auto;
+        }
+        img {
+            max-width: 100%;
+            max-height: 256px;
+            height: auto;
+            width: auto;
+            object-fit: contain;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #downloads {
+            margin: 20px;
+            display: flex;
+            flex-direction: column;
+        }
+        /* Responsive design adjustments */
+        @media (max-width: 600px) {
+            button {
+                padding: 15px 20px;
+                font-size: 18px; /* Even larger font size for smaller screens */
+            }
+            #imageInput {
+                margin: 15px;
+            }
+            h2 {
+                font-size: 24px; /* Larger heading for smaller screens */
+            }
+        }
+    </style>
 </head>
 <body>
-    <h2>Image Loader and Processor</h2>
+    <h2> Image Converter </h2>
+    <p> Select any image and convert it to png or jpeg. </p>
 
     <input type="file" id="imageInput" accept="image/*">
-    <button onclick="loadAndProcessImage()">Load and Process Image</button>
 
     <div id="originalImageContainer"></div>
-    <div id="negatedImageContainer"></div>
+
+    <!-- Radio Buttons for Format Selection -->
+    <div>
+        Convert to
+        <input type="radio" id="formatPng" name="outputFormat" value="image/png" checked>
+        <label for="formatPng">PNG</label>
+        <input type="radio" id="formatJpg" name="outputFormat" value="image/jpeg">
+        <label for="formatJpg">JPG</label>
+    </div>
+
+    <button id="loadingButton" onclick="loadAndProcessImage()"> Convert </button>
+
+    <!-- Loading Bar -->
+    <p> Click to download </p>
+
     <div id="downloads"></div>
 
+    <div id="loadingBar" style="display: none;">
+        Processing Image...
+        <progress id="progressBar" value="0" max="100"></progress>
+    </div>
+
     <script>
-        function loadAndProcessImage() {
-            var input = document.getElementById('imageInput');
-            if (input.files && input.files[0]) {
-                var reader = new FileReader();
+        let imageNameWithoutExtension = '';
+        let originalImage = null;
+
+        document.getElementById('imageInput').addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                // Extract and store the image name without extension
+                let filename = this.files[0].name;
+                imageNameWithoutExtension = filename.substring(0, filename.lastIndexOf('.')) || filename;
+
+                let reader = new FileReader();
 
                 reader.onload = function(e) {
-                    var img = new Image();
-                    img.onload = function() {
-                        processImage(img);
+                    originalImage = new Image();
+                    originalImage.onload = function() {
+                        // Create a copy of the image for display and resize it
+                        let displayImg = new Image();
+                        displayImg.src = originalImage.src;
+                        displayImg.style.maxWidth = '256px';
+                        displayImg.style.maxHeight = '256px';
+
+                        // Display the resized image
+                        displayImage(displayImg, 'originalImageContainer');
                     };
-                    img.src = e.target.result;
-                    displayImage(img, 'originalImageContainer');
+                    originalImage.src = e.target.result;
                 };
 
-                reader.readAsDataURL(input.files[0]);
+                reader.readAsDataURL(this.files[0]);
+            }
+        });
+
+        function loadAndProcessImage() {
+            let input = document.getElementById('imageInput');
+            let loadButton = document.getElementById("loadingButton"); // Get the button element
+            let loadingBar = document.getElementById('loadingBar'); // Get the loading bar element
+            let progressBar = document.getElementById('progressBar'); // Get the loading bar element
+
+            if (originalImage != null) {
+                loadButton.disabled = true;
+                loadingBar.style.display = 'block';
+
+                 progressBar.value = 0; // Reset progress bar
+
+                // Simulate processing with a fake progress update
+                let progress = 0;
+                let interval = setInterval(function() {
+                    progress += 10; // Increment progress
+                    progressBar.value = progress;
+                }, 200); // Update progress every 200 milliseconds
+
+                setTimeout(() => {
+                    processImage(originalImage);
+                    clearInterval(interval);
+                    loadButton.disabled = false;
+                    loadingBar.style.display = 'none';
+                }, 2000)
             }
         }
 
+        function getSelectedFormat() {
+            let formatPng = document.getElementById('formatPng');
+            return formatPng.checked ? 'png' : 'jpeg';
+        }
+
         function displayImage(img, containerId) {
-            var container = document.getElementById(containerId);
+            let container = document.getElementById(containerId);
             container.innerHTML = ''; // Clear the container
             container.appendChild(img); // Add the image to the container
         }
 
         function processImage(img) {
-            var canvas = document.createElement('canvas');
-            var ctx = canvas.getContext('2d');
+            let canvas = document.createElement('canvas');
+            let ctx = canvas.getContext('2d');
             canvas.width = img.width;
             canvas.height = img.height;
             ctx.drawImage(img, 0, 0);
 
-            var imageData = ctx.getImageData(0, 0, img.width, img.height);
-            var data = imageData.data;
-            var dataSize = data.length;
+            let imageData = ctx.getImageData(0, 0, img.width, img.height);
+            let data = imageData.data;
+            let dataSize = data.length;
+            let extension = getSelectedFormat();
 
             // Allocate memory in the WebAssembly module
-            var ptr = Module._alloc_memory(dataSize);
+            let ptr = Module._alloc_memory(dataSize);
 
             // Create a view on the WebAssembly memory
-            var wasmMemoryArray = new Uint8Array(Module.HEAPU8.buffer, ptr, dataSize);
+            let wasmMemoryArray = new Uint8Array(Module.HEAPU8.buffer, ptr, dataSize);
 
             // Copy the data to the allocated space
             wasmMemoryArray.set(new Uint8Array(data.buffer));
 
             // Call the WebAssembly function to process the image
-            Module._negate_image(ptr, img.width, img.height);
+            //Module._negate_image(ptr, img.width, img.height);
 
             // Copy the data back from WebAssembly memory
             data.set(new Uint8Array(Module.HEAPU8.buffer, ptr, dataSize));
@@ -72,30 +191,31 @@
             // Free the allocated memory (if you have a function for this in your WebAssembly module)
             // Module._free_memory(ptr);
 
-            // Create a new Image element for the processed image
-            var processedImg = new Image();
-            processedImg.src = canvas.toDataURL();
-            displayImage(processedImg, 'negatedImageContainer');
-
             // Also make downloadable
             let downloadPtrSize = 1024*1024*32;
             let downloadPtr = Module._alloc_memory(downloadPtrSize)
-            let size = Module._make_download(downloadPtr, ptr, img.width, img.height)
+            let conversionOption = 0;
+            switch(extension)
+            {
+            case 'png': conversionOption = 0; break;
+            case 'jpg': conversionOption = 1; break;
+            }
+            let size = Module._make_download(downloadPtr, ptr, img.width, img.height, 0)
             console.log("Size in bytes = ", size)
-            var downloadBuffer = new Uint8Array(Module.HEAPU8.buffer, downloadPtr, size);
-            console.log("Download buffer size = ", downloadBuffer.size)
+            let downloadBuffer = new Uint8Array(Module.HEAPU8.buffer, downloadPtr, size);
 
             // Assuming downloadBuffer is a Uint8Array with your image data
-            var blob = new Blob([downloadBuffer], { type: 'image/png' });
+            let blob = new Blob([downloadBuffer], { type: 'image/png' });
 
             // Create a URL for the blob
-            var url = URL.createObjectURL(blob);
+            let url = URL.createObjectURL(blob);
 
             // Create a temporary anchor (a) element and trigger a download
-            var downloadLink = document.createElement('a');
+            let downloadLink = document.createElement('a');
             downloadLink.href = url;
-            downloadLink.download = 'negated_image.png'; // Specify the default filename for the download
-            downloadLink.innerHTML = "Download this"
+            let linkName = imageNameWithoutExtension +'_converted.' + extension; 
+            downloadLink.download = linkName;
+            downloadLink.innerHTML = linkName;
 
             // Append the link to the document and trigger the download
             downloads = document.getElementById('downloads')
