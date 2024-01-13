@@ -1,9 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title> Pixel Pivot </title>
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-GCPT6NZK7W"></script>
+    <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-GCPT6NZK7W');
+    </script>
     <!--<script src="build/Debug/converter.js"></script> -->
     <script src="binaries/converter.js"></script> 
+    <title> Pixel Pivot </title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
@@ -160,7 +169,7 @@
                 let interval = setInterval(function() {
                     progress += 10; // Increment progress
                     progressBar.value = progress;
-                }, 200); // Update progress every 200 milliseconds
+                }, 200); 
 
                 setTimeout(() => {
                     processImage(originalImage);
@@ -203,17 +212,11 @@
             // Copy the data to the allocated space
             wasmMemoryArray.set(new Uint8Array(data.buffer));
 
-            // Call the WebAssembly function to process the image
-            //Module._negate_image(ptr, img.width, img.height);
-
             // Copy the data back from WebAssembly memory
             data.set(new Uint8Array(Module.HEAPU8.buffer, ptr, dataSize));
 
             // Update the canvas with the processed image
             ctx.putImageData(imageData, 0, 0);
-
-            // Free the allocated memory (if you have a function for this in your WebAssembly module)
-            // Module._free_memory(ptr);
 
             // Also make downloadable
             let downloadPtrSize = 1024*1024*32;
